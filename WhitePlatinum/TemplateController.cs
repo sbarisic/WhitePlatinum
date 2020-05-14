@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,10 +11,31 @@ using WhitePlatinumLib.Sharepoint;
 using WhitePlatinumLib.TemplateProcessing;
 
 namespace WhitePlatinum {
-	[Route("api/[controller]")]
+	public class SharepointTemplateResponse {
+		public string Message;
+	}
+
+	//[Route("api/[controller]")]
 	public class TemplateController : Controller {
+		[HttpGet("api/test")]
+		public string Test() {
+			return "It works!";
+		}
+
+		// POST api/sharepointtemplate
+		[HttpPost("api/sharepointtemplate")]
+		public SharepointTemplateResponse SharepointTemplate() {
+			string Req = "";
+
+			using (StreamReader Reader = new StreamReader(Request.Body, Encoding.UTF8))
+				Req = Reader.ReadToEnd();
+
+			DEBUG.WriteLine(Req);
+			return new SharepointTemplateResponse() { Message = "Success, request saved" };
+		}
+
 		// POST api/template
-		[HttpPost]
+		[HttpPost("api/template")]
 		public TemplateResponse Post([FromBody]TemplateRequest Request) {
 			const bool DEBUG_EXCEPTIONS = false;
 			SharepointAPI Sharepoint = null;

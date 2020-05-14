@@ -8,14 +8,23 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 namespace WhitePlatinum {
 	public class Startup {
 		public void ConfigureServices(IServiceCollection Services) {
 			Services.AddMvc((MvcOptions) => {
 				MvcOptions.EnableEndpointRouting = false;
-			}).AddNewtonsoftJson((Opt) => { 
+			}).AddNewtonsoftJson((Opt) => {
 
+			});
+
+			Services.Configure<IISServerOptions>(Opt => {
+				Opt.AllowSynchronousIO = true;
+			});
+
+			Services.Configure<KestrelServerOptions>(Opt => {
+				Opt.AllowSynchronousIO = true;
 			});
 		}
 
