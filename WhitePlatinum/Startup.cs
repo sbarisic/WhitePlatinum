@@ -26,12 +26,18 @@ namespace WhitePlatinum {
 			Services.Configure<KestrelServerOptions>(Opt => {
 				Opt.AllowSynchronousIO = true;
 			});
+			
+			/*Services.AddHttpsRedirection(Opt => {
+				Opt.RedirectStatusCode = StatusCodes.Status307TemporaryRedirect;
+				Opt.HttpsPort = 7172;
+			});*/
 		}
 
 		public void Configure(IApplicationBuilder App, IWebHostEnvironment Env) {
 			if (Env.IsDevelopment())
 				App.UseDeveloperExceptionPage();
 
+			//App.UseHttpsRedirection();
 			App.UseMvc();
 		}
 	}
