@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -10,21 +11,19 @@ using Microsoft.Extensions.Hosting;
 
 namespace WhitePlatinum {
 	public class Startup {
-		public void ConfigureServices(IServiceCollection services) {
+		public void ConfigureServices(IServiceCollection Services) {
+			Services.AddMvc((MvcOptions) => {
+				MvcOptions.EnableEndpointRouting = false;
+			}).AddNewtonsoftJson((Opt) => { 
+
+			});
 		}
 
-		public void Configure(IApplicationBuilder app, IWebHostEnvironment env) {
-			if (env.IsDevelopment()) {
-				app.UseDeveloperExceptionPage();
-			}
+		public void Configure(IApplicationBuilder App, IWebHostEnvironment Env) {
+			if (Env.IsDevelopment())
+				App.UseDeveloperExceptionPage();
 
-			app.UseRouting();
-
-			app.UseEndpoints(endpoints => {
-				endpoints.MapGet("/", async context => {
-					await context.Response.WriteAsync("Hello World!");
-				});
-			});
+			App.UseMvc();
 		}
 	}
 }
