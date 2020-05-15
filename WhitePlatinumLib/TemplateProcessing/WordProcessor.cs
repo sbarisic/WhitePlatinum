@@ -26,6 +26,8 @@ namespace WhitePlatinumLib.TemplateProcessing {
 		// This number is arbitrary (?)
 		uint FreeIDSlot = 1024;
 
+		Scripting Scripting;
+
 		public WordProcessor(DataSet Data) {
 			this.Data = Data;
 		}
@@ -42,31 +44,50 @@ namespace WhitePlatinumLib.TemplateProcessing {
 		}
 
 		public void Process(Stream TemplateFileStream) {
-			WordprocessingDocument TemplateDocument = WordprocessingDocument.Open(TemplateFileStream, true);
-			MainPart = TemplateDocument.MainDocumentPart;
-			Document = MainPart.Document;
-			Body Body = Document.Body;
+			OpenSettings Settings = new OpenSettings();
+			Settings.AutoSave = true;
+			//Settings.MarkupCompatibilityProcessSettings = new MarkupCompatibilityProcessSettings(MarkupCompatibilityProcessMode.ProcessAllParts, FileFormatVersions.Office2016);
 
-			HeaderPart[] Headers = MainPart.HeaderParts.ToArray();
-			foreach (var H in Headers)
-				Process(Body, H.Header);
+			using (WordprocessingDocument TemplateDocument = WordprocessingDocument.Open(TemplateFileStream, true, Settings)) {
+				MainPart = TemplateDocument.MainDocumentPart;
+				Document = MainPart.Document;
+				Body Body = Document.Body;
 
-			FooterPart[] Footers = MainPart.FooterParts.ToArray();
-			foreach (var F in Footers)
-				Process(Body, F.Footer);
+				Scripting = new Scripting();
 
-			Process(Body, Body);
-			TemplateDocument.Save();
+				HeaderPart[] Headers = MainPart.HeaderParts.ToArray();
+				for (int i = 0; i < Headers.Length; i++)
+					Process(Body, Headers[i].Header);
+
+				FooterPart[] Footers = MainPart.FooterParts.ToArray();
+				for (int i = 0; i < Footers.Length; i++)
+					Process(Body, Footers[i].Footer);
+
+				OpenXmlElement[] Elements = Body.Elements().ToArray();
+				for (int i = 0; i < Elements.Length; i++)
+					Process(Body, Elements[i]);
+
+				Process(Body, Body);
+				TemplateDocument.Save();
+			}
 		}
 
 		void Process(Body Body, OpenXmlElement Element) {
 			string InnerText = Element.InnerText;
 
+			if (VerifyCodeToken(ref InnerText)) {
+				Element.Remove();
+				Scripting.Eval(InnerText);
+				return;
+			}
+
+			if (Scripting.CaptureElement(Body, Element)) {
+				Element.Remove();
+				return;
+			}
+
 			if (string.IsNullOrEmpty(InnerText))
 				return;
-
-			/*if (InnerText.ToLower().Contains("hyperlink"))
-				Debugger.Break();*/
 
 			if (VerifyToken(ref InnerText, out TokenParameters TokenParams)) {
 				DataType DataType = Data.GetObject(InnerText, out object Obj);
@@ -88,7 +109,7 @@ namespace WhitePlatinumLib.TemplateProcessing {
 
 					if (NewContent is Run)
 						NewContent = new Paragraph(new ParagraphProperties(), NewContent);
-					
+
 					if (DataType == DataType.PageBreak) {
 						SdtContentBlock.Parent.Parent.ReplaceChild(NewContent, SdtContentBlock.Parent);
 					} else {
@@ -120,7 +141,6 @@ namespace WhitePlatinumLib.TemplateProcessing {
 
 			// Array is used here because element children are dynamically changed, IEnumerable may have side effects
 			OpenXmlElement[] Elements = Element.Elements().ToArray();
-
 			for (int i = 0; i < Elements.Length; i++) {
 				OpenXmlElement E = Elements[i];
 
@@ -327,7 +347,9 @@ namespace WhitePlatinumLib.TemplateProcessing {
 					new Dw.Pictures.BlipFill(
 						new Dw.Blip(new Dw.ExtensionList(
 								new Dw.BlipExtension(new Dw10.UseLocalDpi() { Val = false }) { Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}" }
-							)) { Embed = RelID },
+							)) {
+							Embed = RelID
+						},
 						new Dw.SourceRectangle(),
 						new Dw.Stretch(new Dw.FillRectangle())
 					),
@@ -337,8 +359,12 @@ namespace WhitePlatinumLib.TemplateProcessing {
 							new Dw.PresetGeometry(new Dw.AdjustValueList()) { Preset = Dw.ShapeTypeValues.Rectangle },
 							new Dw.NoFill(),
 							new Dw.Outline(new Dw.NoFill())
-						) { BlackWhiteMode = Dw.BlackWhiteModeValues.Auto }
-				)) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" };
+						) {
+						BlackWhiteMode = Dw.BlackWhiteModeValues.Auto
+					}
+				)) {
+				Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture"
+			};
 
 			Drawing DrawingElement = new Drawing(
 				new Dw.Wordprocessing.Inline(
@@ -347,7 +373,12 @@ namespace WhitePlatinumLib.TemplateProcessing {
 					new Dw.Wordprocessing.DocProperties() { Id = FreeIDSlot, Name = Name, Description = Desc },
 					new Dw.Wordprocessing.NonVisualGraphicFrameDrawingProperties(new Dw.GraphicFrameLocks() { NoChangeAspect = true }),
 					new Dw.Graphic(GData)
-					) { DistanceFromTop = 0U, DistanceFromBottom = 0U, DistanceFromLeft = 0U, DistanceFromRight = 0U });
+					) {
+					DistanceFromTop = 0U,
+					DistanceFromBottom = 0U,
+					DistanceFromLeft = 0U,
+					DistanceFromRight = 0U
+				});
 
 			FreeIDSlot++;
 			return DrawingElement;
@@ -436,6 +467,9 @@ namespace WhitePlatinumLib.TemplateProcessing {
 			if (string.IsNullOrWhiteSpace(Token))
 				return false;
 
+			if (Token.StartsWith("{{") && Token.EndsWith("}}"))
+				return false;
+
 			if (Token.StartsWith(LEAD_BRACE) && Token.EndsWith(TAIL_BRACE)) {
 				string TempToken = Token.Substring(1, Token.Length - 2);
 
@@ -452,6 +486,23 @@ namespace WhitePlatinumLib.TemplateProcessing {
 				}
 
 				Token = TempToken;
+				return true;
+			}
+
+			return false;
+		}
+
+		static bool VerifyCodeToken(ref string Token) {
+			const string LEAD = "{{";
+			const string TAIL = "}}";
+
+			if (Token.StartsWith(LEAD) && Token.EndsWith(TAIL)) {
+				string TempToken = Token.Substring(LEAD.Length, Token.Length - LEAD.Length - TAIL.Length);
+
+				if (TempToken.Contains(LEAD) || TempToken.Contains(TAIL))
+					return false;
+
+				Token = TempToken.Trim();
 				return true;
 			}
 

@@ -15,29 +15,40 @@ namespace WhitePlatinum {
 		public string Message;
 	}
 
-	//[Route("api/[controller]")]
+	[Produces("application/json")]
 	public class TemplateController : Controller {
+		void SetupResponseHeaders() {
+			Response.Headers.Add("Access-Control-Allow-Origin", "*");
+			Response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+		}
+
 		[HttpGet("api/test")]
 		public string Test() {
+			SetupResponseHeaders();
 			return "It works!";
 		}
 
 		// POST api/sharepointtemplate
 		[HttpPost("api/sharepointtemplate")]
-		public SharepointTemplateResponse SharepointTemplate() {
-			string Req = "";
+		public TemplateResponse SharepointTemplate([FromBody]TemplateRequest TemplateRequest) {
+			//SetupResponseHeaders();
+			/*string Req = "";
 
 			using (StreamReader Reader = new StreamReader(Request.Body, Encoding.UTF8))
 				Req = Reader.ReadToEnd();
 
 			DEBUG.WriteLine(Req);
-			return new SharepointTemplateResponse() { Message = "Success, request saved" };
+
+			return new TemplateResponse(new FileEntry("Response.docx", Utils.GetAppdataFileBytes("Response.docx")));*/
+
+			return Post(TemplateRequest);
 		}
 
 		// POST api/template
 		[HttpPost("api/template")]
 		public TemplateResponse Post([FromBody]TemplateRequest Request) {
-			const bool DEBUG_EXCEPTIONS = false;
+			SetupResponseHeaders();
+			const bool DEBUG_EXCEPTIONS = true;
 			SharepointAPI Sharepoint = null;
 
 			try {
@@ -48,10 +59,16 @@ namespace WhitePlatinum {
 						throw new Exception("Request template content and name empty");
 
 					if (Uri.TryCreate(Request.Template.Name, UriKind.Absolute, out Uri Result)) {
+						string PathWithoutScheme = Result.OriginalString.Substring(Result.Scheme.Length + 3);
+
 						switch (Result.Scheme) {
 							case "http":
 							case "https":
 								TemplateData = Utils.DownloadRaw(Result);
+								break;
+
+							case "template":
+								TemplateData = Utils.GetTemplateBytes(PathWithoutScheme);
 								break;
 
 							case "sharepoint": {
@@ -74,6 +91,9 @@ namespace WhitePlatinum {
 				WordProcessor Processor = new WordProcessor(Data);
 
 				byte[] ProcessedFile = Processor.Process(TemplateData);
+				// TODO: REMOVE
+				DEBUG.WriteBytes("response.docx", ProcessedFile);
+
 				FileEntry ResponseFile = null;
 
 				switch (string.IsNullOrEmpty(Request.SaveMethod) ? "base64" : Request.SaveMethod) {
@@ -114,6 +134,5 @@ namespace WhitePlatinum {
 
 			return new SharepointAPI("todo", Utils.CreateSecureString("todo"));
 		}
-
 	}
 }

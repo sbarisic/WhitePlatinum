@@ -6,9 +6,29 @@ using System.Linq;
 using System.Net;
 using System.Security;
 using System.Web;
+using System.IO;
 
 namespace WhitePlatinumLib {
 	public static class Utils {
+		static string AppDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DocumentEngine");
+		static string TemplateFolder = Path.Combine(AppDataFolder, "Templates");
+
+		public static byte[] GetAppdataFileBytes(string Name) {
+			if (!Directory.Exists(AppDataFolder))
+				Directory.CreateDirectory(AppDataFolder);
+
+			return File.ReadAllBytes(Path.Combine(AppDataFolder, Name));
+		}
+
+		public static byte[] GetTemplateBytes(string TemplateName) {
+			if (!Directory.Exists(TemplateFolder))
+				Directory.CreateDirectory(TemplateFolder);
+
+			//System.Diagnostics.Process.Start("explorer.exe", Path.GetFullPath("."));
+
+			return File.ReadAllBytes(Path.Combine(TemplateFolder, TemplateName));
+		}
+
 		public static byte[] DownloadRaw(string URL) {
 			using (WebClient WClient = new WebClient()) {
 				return WClient.DownloadData(URL);
