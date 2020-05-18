@@ -18,7 +18,8 @@ namespace WhitePlatinum {
 	[Produces("application/json")]
 	public class TemplateController : Controller {
 		void SetupResponseHeaders() {
-			Response.Headers.Add("Access-Control-Allow-Origin", "*");
+			//Response.Headers.Add("Access-Control-Allow-Origin", "https://serengetitech.sharepoint.com/");
+			//Response.Headers.Add("Vary", "Origin");
 			Response.Headers.Add("Content-Type", "application/json; charset=utf-8");
 		}
 
@@ -32,15 +33,8 @@ namespace WhitePlatinum {
 		[HttpPost("api/sharepointtemplate")]
 		public TemplateResponse SharepointTemplate([FromBody]TemplateRequest TemplateRequest) {
 			//SetupResponseHeaders();
-			/*string Req = "";
 
-			using (StreamReader Reader = new StreamReader(Request.Body, Encoding.UTF8))
-				Req = Reader.ReadToEnd();
-
-			DEBUG.WriteLine(Req);
-
-			return new TemplateResponse(new FileEntry("Response.docx", Utils.GetAppdataFileBytes("Response.docx")));*/
-
+			DEBUG.WriteLine(Utils.ToJSON(TemplateRequest));
 			return Post(TemplateRequest);
 		}
 
@@ -53,6 +47,12 @@ namespace WhitePlatinum {
 
 			try {
 				byte[] TemplateData = null;
+
+				if (Request == null)
+					throw new Exception("Request was null");
+
+				if (Request.Template == null)
+					throw new Exception("Request.Template was null");
 
 				if (string.IsNullOrWhiteSpace(Request.Template.Content)) {
 					if (string.IsNullOrWhiteSpace(Request.Template.Name))

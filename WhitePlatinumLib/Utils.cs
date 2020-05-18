@@ -7,6 +7,8 @@ using System.Net;
 using System.Security;
 using System.Web;
 using System.IO;
+using System.Text;
+using Newtonsoft.Json;
 
 namespace WhitePlatinumLib {
 	public static class Utils {
@@ -86,6 +88,23 @@ namespace WhitePlatinumLib {
 		public static string GetStringWithoutScheme(Uri URI) {
 			string Str = URI.OriginalString.Substring(URI.Scheme.Length + 3);
 			return Str;
+		}
+
+		static JsonSerializer Serializer;
+
+		public static string ToJSON(object Obj) {
+			if (Serializer == null) {
+				Serializer = new JsonSerializer();
+			}
+
+			using (MemoryStream MS = new MemoryStream()) {
+				using (StreamWriter SW = new StreamWriter(MS, Encoding.UTF8, 64, true))
+				using (JsonWriter Writer = new JsonTextWriter(SW))
+					Serializer.Serialize(Writer, Obj);
+
+				MS.Seek(0, SeekOrigin.Begin);
+				return Encoding.UTF8.GetString(MS.ToArray());
+			}
 		}
 	}
 }
