@@ -13,14 +13,33 @@ namespace WhitePlatinumLib.TemplateProcessing {
 		String,
 		Array,
 		EmbeddedData,
-		PageBreak
+		PageBreak,
+
+		Hook_Skip,
 	}
+
+	public delegate DataType SpecialObjectHookFunc(string Token, out object Obj);
 
 	public class DataSet {
 		JObject Data;
+		SpecialObjectHookFunc SpecialObjectHook;
 
 		public DataSet(string DataJSON) {
 			Data = (JObject)JsonConvert.DeserializeObject(DataJSON);
+		}
+
+		public void UseSpecialObjectHook(SpecialObjectHookFunc Func, Action Act) {
+			SpecialObjectHookFunc Old = SpecialObjectHook;
+			SpecialObjectHook = Func;
+			Act();
+			SpecialObjectHook = Old;
+		}
+
+		public void UseRootObject(JObject Data, Action Act) {
+			JObject Old = this.Data;
+			this.Data = Data;
+			Act();
+			this.Data = Old;
 		}
 
 		DataType GetSpecialObject(string Token, out object Obj) {
@@ -38,10 +57,17 @@ namespace WhitePlatinumLib.TemplateProcessing {
 					return DataType.PageBreak;
 			}
 
+			if (SpecialObjectHook != null) {
+				DataType Ret = SpecialObjectHook(Token, out Obj);
+
+				if (Ret != DataType.Hook_Skip)
+					return Ret;
+			}
+
 			throw new Exception(string.Format("Invalid special object token '{0}'", Token));
 		}
 
-		public DataType GetObject(string Token, out object Obj) {
+		public DataType GetObject(string Token, TokenParameters TokenParams, out object Obj) {
 			string[] FullName = Token.Split('.');
 			Obj = Data;
 
@@ -58,7 +84,7 @@ namespace WhitePlatinumLib.TemplateProcessing {
 					//Col.RefArrayToken = TableToken;
 
 
-					DataType TableTokenDataType = GetObject(TableToken, out object _Obj);
+					DataType TableTokenDataType = GetObject(TableToken, TokenParams, out object _Obj);
 					if (_Obj is JArray TableObj) {
 						JToken ColumnDefinition = TableObj[0][Col.Identifier];
 
@@ -92,9 +118,14 @@ namespace WhitePlatinumLib.TemplateProcessing {
 				}
 			}
 
-			if (Obj == null)
+			if (Obj == null) {
+				if (TokenParams != null && TokenParams.Defined("null")) {
+					Obj = TokenParams.Get<string>("null");
+					return DataType.String;
+				}
+
 				return DataType.None;
-			else if (Obj is JObject JObject) {
+			} else if (Obj is JObject JObject) {
 				if (JObject.TryGetValue("__type", out JToken TypeToken) && JObject.TryGetValue("__data", out JToken DataToken)) {
 					Obj = new EmbeddedData(TypeToken, DataToken);
 					return DataType.EmbeddedData;
@@ -110,13 +141,13 @@ namespace WhitePlatinumLib.TemplateProcessing {
 		}
 
 		public DataType GetObjectType(string Token) {
-			return GetObject(Token, out object Obj);
+			return GetObject(Token, null, out object Obj);
 		}
 
 		public string GetString(string Token) {
 			DataType ObjType = DataType.None;
 
-			if ((ObjType = GetObject(Token, out object Obj)) != DataType.String)
+			if ((ObjType = GetObject(Token, null, out object Obj)) != DataType.String)
 				throw new Exception(string.Format("Expected String, got {0} for '{1}", ObjType, Token));
 
 			return (string)Obj;
@@ -125,7 +156,7 @@ namespace WhitePlatinumLib.TemplateProcessing {
 		public object[] GetArray(string Token) {
 			DataType ObjType = DataType.None;
 
-			if ((ObjType = GetObject(Token, out object Obj)) != DataType.Array)
+			if ((ObjType = GetObject(Token, null, out object Obj)) != DataType.Array)
 				throw new Exception(string.Format("Expected Array, got {0} for '{1}", ObjType, Token));
 
 

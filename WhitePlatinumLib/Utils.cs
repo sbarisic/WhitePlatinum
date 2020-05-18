@@ -13,6 +13,10 @@ namespace WhitePlatinumLib {
 		static string AppDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DocumentEngine");
 		static string TemplateFolder = Path.Combine(AppDataFolder, "Templates");
 
+		public static string FixQuotes(string Str) {
+			return Str.Replace("“", "\"").Replace("”", "\"");
+		}
+
 		public static byte[] GetAppdataFileBytes(string Name) {
 			if (!Directory.Exists(AppDataFolder))
 				Directory.CreateDirectory(AppDataFolder);

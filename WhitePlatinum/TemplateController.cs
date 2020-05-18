@@ -92,7 +92,7 @@ namespace WhitePlatinum {
 
 				byte[] ProcessedFile = Processor.Process(TemplateData);
 				// TODO: REMOVE
-				DEBUG.WriteBytes("response.docx", ProcessedFile);
+				//DEBUG.WriteBytes("response.docx", ProcessedFile);
 
 				FileEntry ResponseFile = null;
 

@@ -53,7 +53,7 @@ namespace WhitePlatinumLib.TemplateProcessing {
 				Document = MainPart.Document;
 				Body Body = Document.Body;
 
-				Scripting = new Scripting();
+				Scripting = new Scripting(Data, this);
 
 				HeaderPart[] Headers = MainPart.HeaderParts.ToArray();
 				for (int i = 0; i < Headers.Length; i++)
@@ -72,7 +72,7 @@ namespace WhitePlatinumLib.TemplateProcessing {
 			}
 		}
 
-		void Process(Body Body, OpenXmlElement Element) {
+		public void Process(Body Body, OpenXmlElement Element) {
 			string InnerText = Element.InnerText;
 
 			if (VerifyCodeToken(ref InnerText)) {
@@ -90,7 +90,10 @@ namespace WhitePlatinumLib.TemplateProcessing {
 				return;
 
 			if (VerifyToken(ref InnerText, out TokenParameters TokenParams)) {
-				DataType DataType = Data.GetObject(InnerText, out object Obj);
+				DataType DataType = Data.GetObject(InnerText, TokenParams, out object Obj);
+
+				if (DataType == DataType.None)
+					throw new Exception(string.Format("Could not find data for token '{0}'", InnerText));
 
 				if ((CurrentRun = Element.GetFirstChild<RunProperties>()) == null) {
 					SdtProperties SdtProps = Element.GetFirstChild<SdtProperties>();
@@ -485,7 +488,7 @@ namespace WhitePlatinumLib.TemplateProcessing {
 					TempToken = TempToken.Substring(0, TempToken.IndexOf(LEAD_PAREN));
 				}
 
-				Token = TempToken;
+				Token = TempToken.Trim();
 				return true;
 			}
 

@@ -12,6 +12,8 @@ namespace WhitePlatinumLib {
 		}
 
 		public TokenParameters(string ParamsString) : this() {
+			ParamsString = Utils.FixQuotes(ParamsString);
+
 			string[] KeyValueStrings = ParamsString.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 
 			foreach (var KV in KeyValueStrings) {
@@ -46,6 +48,11 @@ namespace WhitePlatinumLib {
 				return (T)(object)int.Parse(Param.Value);
 			else if (typeof(T) == typeof(bool))
 				return (T)(object)bool.Parse(Param.Value);
+			else if (typeof(T) == typeof(string)) {
+				string Ret = Param.Value.Trim();
+				Ret = Ret.Substring(1, Ret.Length - 2);
+				return (T)(object)Ret;
+			}
 
 			throw new NotImplementedException(string.Format("TokenParameter Get<{0}> not implemented", typeof(T).Name));
 		}
