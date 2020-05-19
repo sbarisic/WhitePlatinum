@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Web;
@@ -134,9 +135,15 @@ namespace WhitePlatinumLib.TemplateProcessing {
 				return DataType.Object;
 			} else if (Obj is JArray)
 				return DataType.Array;
-			else if (Obj is string RootStr)
+			else if (Obj is string RootStr) {
+				// TODO: Fix eventually
+				Obj = RootStr.Trim().Replace("\r", "").Replace("\n", " ").Replace("\t", " ");
+
+				/*if (RootStr.Contains("\n"))
+					Debugger.Break();*/
+
 				return DataType.String;
-			else
+			} else
 				throw new NotImplementedException();
 		}
 

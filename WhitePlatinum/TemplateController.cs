@@ -101,8 +101,9 @@ namespace WhitePlatinum {
 				WordProcessor Processor = new WordProcessor(Data);
 
 				byte[] ProcessedFile = Processor.Process(TemplateData);
-				// TODO: REMOVE
-				//DEBUG.WriteBytes("response.docx", ProcessedFile);
+
+				if (Debugger.IsAttached)
+					DEBUG.WriteBytes("response.docx", ProcessedFile);
 
 				FileEntry ResponseFile = null;
 
