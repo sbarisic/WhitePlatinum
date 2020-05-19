@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using WhitePlatinumLib;
 using WhitePlatinumLib.Sharepoint;
@@ -18,11 +19,11 @@ namespace WhitePlatinum {
 	[Produces("application/json")]
 	public class TemplateController : Controller {
 		void SetupResponseHeaders() {
-			//Response.Headers.Add("Access-Control-Allow-Origin", "https://serengetitech.sharepoint.com/");
-			//Response.Headers.Add("Vary", "Origin");
 			Response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+			Response.StatusCode = 200;
 		}
 
+		[EnableCors]
 		[HttpGet("api/test")]
 		public string Test() {
 			SetupResponseHeaders();
@@ -30,17 +31,26 @@ namespace WhitePlatinum {
 		}
 
 		// POST api/sharepointtemplate
+		/*[EnableCors]
 		[HttpPost("api/sharepointtemplate")]
 		public TemplateResponse SharepointTemplate([FromBody]TemplateRequest TemplateRequest) {
 			//SetupResponseHeaders();
 
 			DEBUG.WriteLine(Utils.ToJSON(TemplateRequest));
 			return Post(TemplateRequest);
+		}*/
+
+		[HttpOptions]
+		public void Options() {
 		}
 
 		// POST api/template
-		[HttpPost("api/template")]
+		//[HttpPost("api/template")]
+		[EnableCors]
+		[HttpPost("api/sharepointtemplate")]
 		public TemplateResponse Post([FromBody]TemplateRequest Request) {
+			DEBUG.WriteLine(Utils.ToJSON(Request));
+
 			SetupResponseHeaders();
 			const bool DEBUG_EXCEPTIONS = true;
 			SharepointAPI Sharepoint = null;

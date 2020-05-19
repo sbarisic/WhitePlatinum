@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 
 namespace WhitePlatinum {
 	public class Startup {
@@ -26,11 +27,10 @@ namespace WhitePlatinum {
 			Services.Configure<KestrelServerOptions>(Opt => {
 				Opt.AllowSynchronousIO = true;
 			});
-			
-			/*Services.AddHttpsRedirection(Opt => {
-				Opt.RedirectStatusCode = StatusCodes.Status307TemporaryRedirect;
-				Opt.HttpsPort = 7172;
-			});*/
+
+			Services.AddCors(Opt => {
+				Opt.AddDefaultPolicy(Builder => Builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+			});
 		}
 
 		public void Configure(IApplicationBuilder App, IWebHostEnvironment Env) {
@@ -39,6 +39,7 @@ namespace WhitePlatinum {
 
 			//App.UseHttpsRedirection();
 			App.UseMvc();
+			App.UseCors();
 		}
 	}
 }
