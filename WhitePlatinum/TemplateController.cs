@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using WhitePlatinumLib;
 using WhitePlatinumLib.Sharepoint;
 using WhitePlatinumLib.TemplateProcessing;
@@ -18,6 +20,12 @@ namespace WhitePlatinum {
 
 	[Produces("application/json")]
 	public class TemplateController : Controller {
+		PlatinumConfig PlatinumCfg;
+
+		public TemplateController([FromServices] IConfiguration Config) {
+			PlatinumCfg = new PlatinumConfig(Config.GetSection(nameof(PlatinumConfig)));
+		}
+
 		void SetupResponseHeaders() {
 			Response.Headers.Add("Content-Type", "application/json; charset=utf-8");
 			Response.StatusCode = 200;
@@ -49,7 +57,14 @@ namespace WhitePlatinum {
 		[EnableCors]
 		[HttpPost("api/sharepointtemplate")]
 		public TemplateResponse Post([FromBody]TemplateRequest Request) {
-			DEBUG.WriteLine(Utils.ToJSON(Request));
+			if (PlatinumCfg.EnableLogging)
+				DEBUG.WriteLine(DateTime.Now.ToString("[dd.MM.yyyy. HH:mm:ss]") + " " + Utils.ToJSON(Request).Trim());
+
+			if (PlatinumCfg.DumpLastRequestJson)
+				DEBUG.WriteBytes("request.json", Encoding.UTF8.GetBytes(Utils.ToJSON(Request, true)));
+
+			if (PlatinumCfg.DumpLastDataJson)
+				DEBUG.WriteBytes("data.json", Utils.JsonPrettify(Convert.FromBase64String(Request.Data.Content)));
 
 			SetupResponseHeaders();
 			const bool DEBUG_EXCEPTIONS = true;
@@ -102,7 +117,7 @@ namespace WhitePlatinum {
 
 				byte[] ProcessedFile = Processor.Process(TemplateData);
 
-				if (Debugger.IsAttached)
+				if (PlatinumCfg.DumpLastResponseFile)
 					DEBUG.WriteBytes("response.docx", ProcessedFile);
 
 				FileEntry ResponseFile = null;

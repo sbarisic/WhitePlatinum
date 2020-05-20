@@ -92,19 +92,33 @@ namespace WhitePlatinumLib {
 
 		static JsonSerializer Serializer;
 
-		public static string ToJSON(object Obj) {
+		public static string ToJSON(object Obj, bool Pretty = false) {
 			if (Serializer == null) {
 				Serializer = new JsonSerializer();
 			}
 
 			using (MemoryStream MS = new MemoryStream()) {
 				using (StreamWriter SW = new StreamWriter(MS, Encoding.UTF8, 64, true))
-				using (JsonWriter Writer = new JsonTextWriter(SW))
+				using (JsonWriter Writer = new JsonTextWriter(SW) { Formatting = Pretty ? Formatting.Indented : Formatting.None })
 					Serializer.Serialize(Writer, Obj);
 
 				MS.Seek(0, SeekOrigin.Begin);
 				return Encoding.UTF8.GetString(MS.ToArray());
 			}
+		}
+
+		public static string JsonPrettify(string Json) {
+			using (var StrReader = new StringReader(Json))
+			using (var StrWriter = new StringWriter()) {
+				JsonTextReader JsonReader = new JsonTextReader(StrReader);
+				JsonTextWriter JsonWriter = new JsonTextWriter(StrWriter) { Formatting = Formatting.Indented };
+				JsonWriter.WriteToken(JsonReader);
+				return StrWriter.ToString();
+			}
+		}
+
+		public static byte[] JsonPrettify(byte[] Json) {
+			return Encoding.UTF8.GetBytes(JsonPrettify(Encoding.UTF8.GetString(Json)));
 		}
 	}
 }
