@@ -314,7 +314,18 @@ namespace WhitePlatinumLib.TemplateProcessing {
 					}
 
 				case DataType.String: {
-						WordTable.ColumnStyle Style = WordTableContext.GetCurrent()?.GetCurrentColumn()?.ParseStyle() ?? WordTable.ColumnStyle.NONE;
+						WordTable.ColumnStyle TokenParamStyle = WordTable.ColumnStyle.NONE;
+
+						if (TokenParams.Defined("bold"))
+							TokenParamStyle |= WordTable.ColumnStyle.BOLD;
+
+						if (TokenParams.Defined("italic"))
+							TokenParamStyle |= WordTable.ColumnStyle.ITALIC;
+
+						if (TokenParams.Defined("underline"))
+							TokenParamStyle |= WordTable.ColumnStyle.UNDERLINE;
+
+						WordTable.ColumnStyle Style = WordTableContext.GetCurrent()?.GetCurrentColumn()?.ParseStyle() ?? TokenParamStyle;
 						return GenerateTextRun(Obj.ToString(), Style);
 					}
 
@@ -411,14 +422,26 @@ namespace WhitePlatinumLib.TemplateProcessing {
 		Run GenerateTextRun(string Content, WordTable.ColumnStyle Style = WordTable.ColumnStyle.NONE) {
 			RunProperties Props = CurrentRun.Copy() ?? new RunProperties();
 
-			if (Style.HasFlag(WordTable.ColumnStyle.BOLD) && !Props.HasChild<Bold>())
-				Props.AppendChild(new Bold());
+			if (Style.HasFlag(WordTable.ColumnStyle.BOLD)) {
+				if (!Props.HasChild<Bold>())
+					Props.AppendChild(new Bold());
+				else
+					Props.GetFirstChild<Bold>().Val.Value = true;
+			}
 
-			if (Style.HasFlag(WordTable.ColumnStyle.ITALIC) && !Props.HasChild<Italic>())
-				Props.AppendChild(new Italic());
+			if (Style.HasFlag(WordTable.ColumnStyle.ITALIC)) {
+				if (!Props.HasChild<Italic>())
+					Props.AppendChild(new Italic());
+				else
+					Props.GetFirstChild<Italic>().Val.Value = true;
+			}
 
-			if (Style.HasFlag(WordTable.ColumnStyle.UNDERLINE) && !Props.HasChild<Underline>())
-				Props.AppendChild(new Underline());
+			if (Style.HasFlag(WordTable.ColumnStyle.UNDERLINE) && !Props.HasChild<Underline>()) {
+				if (!Props.HasChild<Underline>())
+					Props.AppendChild(new Underline());
+				else
+					Props.GetFirstChild<Underline>().Val.Value = UnderlineValues.Single;
+			}
 
 			Run NewRun = new Run();
 			NewRun.AppendChild(Props);
